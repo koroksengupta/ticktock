@@ -62,10 +62,21 @@
   .lang-switch button{ background:none; padding:6px 10px; border-radius:16px; font-size:.8rem; font-weight:600; color:var(--ink-soft);}
   .lang-switch button.active{ background:var(--accent-warm); color:#2B2A33; }
 
+  /* welcome / name entry */
+  .welcome-card{ margin:auto; text-align:center; background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:34px 24px; max-width:320px; width:100%; }
+  .welcome-card .mascot-emoji{font-size:2.6rem; margin-bottom:8px;}
+  .welcome-card h2{font-size:1.25rem; margin-bottom:6px;}
+  .welcome-card p{color:var(--ink-soft); font-size:.92rem; margin:0 0 18px;}
+  .name-input{ width:100%; padding:14px 16px; border-radius:20px; border:2px solid var(--ink-soft); background:var(--surface-2); font-family:var(--font-body); font-size:1.05rem; color:var(--ink); text-align:center; margin-bottom:14px; }
+  .name-input:focus{outline:none; border-color:var(--accent-minute);}
+  .welcome-card .btn-primary{width:100%;}
+  .welcome-card .btn-primary:disabled{opacity:.4; pointer-events:none;}
+
   /* map */
   .map-header{text-align:center; margin:8px 0 18px;}
   .map-header h1{font-size:1.35rem;}
   .map-header p{margin:6px 0 0; color:var(--ink-soft); font-size:.9rem;}
+  .change-name-link{ background:none; border:none; margin-top:8px; padding:2px; color:var(--ink-soft); font-size:.75rem; font-family:var(--font-body); text-decoration:underline; cursor:pointer; }
   .map-path{display:flex; flex-wrap:wrap; gap:16px 10px; justify-content:center; padding:6px 2px;}
   .level-stop{ width:126px; border-radius:var(--radius-lg); padding:14px 10px 12px; box-shadow:var(--shadow); text-align:center; position:relative; color:#2B2A33;}
   .level-stop.dark-theme{color:#F2EFE9;}
@@ -179,6 +190,12 @@
   var STRINGS = {
     en: {
       appTitle: "Ticky Learns the Clock",
+      appTitleFor: function(name){ return name + " Learns the Clock"; },
+      welcomeHeading: "What's your name?",
+      welcomeSub: "Let's learn to tell time together!",
+      namePlaceholder: "Type your name",
+      startBtn: "Let's go!",
+      changeName: "Change name",
       mapSubtitle: "Play each skill at your own pace \u2013 no grades, just practice.",
       home: "Home",
       complete: "Level complete!",
@@ -213,6 +230,12 @@
     },
     de: {
       appTitle: "Ticky lernt die Uhr",
+      appTitleFor: function(name){ return name + " lernt die Uhr"; },
+      welcomeHeading: "Wie hei\u00dft du?",
+      welcomeSub: "Lass uns gemeinsam die Uhr lernen!",
+      namePlaceholder: "Gib deinen Namen ein",
+      startBtn: "Los geht's!",
+      changeName: "Namen \u00e4ndern",
       mapSubtitle: "\u00dcbe jede F\u00e4higkeit in deinem eigenen Tempo \u2013 ganz ohne Noten.",
       home: "Start",
       complete: "Stufe geschafft!",
@@ -281,14 +304,14 @@
   // ---------------- persistence ----------------
   function loadProgress(){
     try{ var raw = localStorage.getItem(STORAGE_KEY); if(raw) return JSON.parse(raw); }catch(e){}
-    return { stars:{}, unlocked:1, lang:'de', bestTimeLevel5:null };
+    return { stars:{}, unlocked:1, lang:'de', bestTimeLevel5:null, name:'' };
   }
   function saveProgress(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); }catch(e){} }
   var progress = loadProgress();
 
   // ---------------- state ----------------
   var state = {
-    screen:'map',
+    screen: progress.name ? 'map' : 'welcome',
     lang: progress.lang || 'de',
     currentLevelId:null,
     roundIndex:0,
@@ -298,7 +321,8 @@
     minuteHelperOn:true,
     round:null,          // current round target data
     roundStartTime:null,
-    live:null            // live drag state, see startRoundLive()
+    live:null,           // live drag state, see startRoundLive()
+    nameDraft:undefined  // in-progress text on the welcome screen
   };
 
   // ---------------- math helpers ----------------
@@ -312,6 +336,11 @@
   function wrapHour(h){ return ((h-1)%12+12)%12+1; }
   function pad2(n){ return String(n).padStart(2,'0'); }
   function fmt(h,m){ return h + ':' + pad2(m); }
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
   function polar(angleDeg, r, cx, cy){
     cx = cx===undefined?150:cx; cy = cy===undefined?150:cy;
     var rad = angleDeg*Math.PI/180;
@@ -696,6 +725,21 @@
   // ---------------- flow ----------------
   function goMap(){ state.screen='map'; render(); }
 
+  function goWelcome(prefill){
+    state.screen = 'welcome';
+    state.nameDraft = prefill!==undefined ? prefill : (progress.name||'');
+    render();
+  }
+
+  function submitName(name){
+    var trimmed = (name||'').trim().slice(0,24);
+    if(!trimmed) return;
+    progress.name = trimmed;
+    saveProgress();
+    state.screen = 'map';
+    render();
+  }
+
   function openLevel(id){
     state.currentLevelId = id;
     state.roundIndex = 0;
@@ -760,8 +804,25 @@
       '</div>';
   }
 
+  function renderWelcome(){
+    var t = T();
+    var current = state.nameDraft!==undefined ? state.nameDraft : (progress.name||'');
+    return '' +
+      '<div class="scene">' +
+        '<div class="topbar" style="justify-content:center;">'+renderLangSwitch()+'</div>' +
+        '<div class="welcome-card">' +
+          '<div class="mascot-emoji">⏰</div>' +
+          '<h2>'+t.welcomeHeading+'</h2>' +
+          '<p>'+t.welcomeSub+'</p>' +
+          '<input type="text" id="nameInput" class="name-input" placeholder="'+escapeHtml(t.namePlaceholder)+'" maxlength="24" value="'+escapeHtml(current)+'" autocomplete="off">' +
+          '<button class="btn-primary" id="startBtn" '+(current.trim()?'':'disabled')+'>'+t.startBtn+'</button>' +
+        '</div>' +
+      '</div>';
+  }
+
   function renderMap(){
     var t = T();
+    var titleText = progress.name ? t.appTitleFor(escapeHtml(progress.name)) : t.appTitle;
     var stops = LEVELS.map(function(lvl){
       var locked = lvl.id > progress.unlocked;
       var stars = progress.stars[lvl.id]||0;
@@ -779,7 +840,9 @@
     return '' +
       '<div class="scene">' +
         '<div class="topbar"><div></div>'+renderLangSwitch()+'</div>' +
-        '<div class="map-header"><h1>'+t.appTitle+'</h1><p>'+t.mapSubtitle+'</p></div>' +
+        '<div class="map-header"><h1>'+titleText+'</h1><p>'+t.mapSubtitle+'</p>' +
+          (progress.name ? '<button class="change-name-link" id="changeNameBtn">'+t.changeName+'</button>' : '') +
+        '</div>' +
         '<div class="map-path">'+stops+'</div>' +
       '</div>';
   }
@@ -911,7 +974,8 @@
   function render(){
     var app = document.getElementById('app');
     var html, bg;
-    if(state.screen==='map'){ html = renderMap(); bg = ['#DDEEF7','#FFF6E4']; }
+    if(state.screen==='welcome'){ html = renderWelcome(); bg = ['#FFE9C7','#FFF6E4']; }
+    else if(state.screen==='map'){ html = renderMap(); bg = ['#DDEEF7','#FFF6E4']; }
     else if(state.screen==='quiz'){
       var level = levelById(state.currentLevelId);
       if(state.roundIndex===0 && !state.levelStartTimeSetFor){ state.levelStartTime = Date.now(); state.levelStartTimeSetFor = state.currentLevelId; }
@@ -922,9 +986,23 @@
     applySceneBg(bg);
     attachHandlers();
     if(state.screen==='quiz' && state.round && state.round.type!=='text'){ attachDrag(levelById(state.currentLevelId)); }
+    if(state.screen==='welcome'){ var nameInput = document.getElementById('nameInput'); if(nameInput) nameInput.focus(); }
+    try{ document.title = progress.name ? T().appTitleFor(progress.name) : T().appTitle; }catch(e){}
   }
 
   function attachHandlers(){
+    var nameInput = document.getElementById('nameInput');
+    if(nameInput){
+      nameInput.addEventListener('input', function(){
+        state.nameDraft = nameInput.value;
+        var startBtn = document.getElementById('startBtn');
+        if(startBtn) startBtn.disabled = !nameInput.value.trim();
+      });
+      nameInput.addEventListener('keydown', function(e){ if(e.key==='Enter'){ submitName(nameInput.value); } });
+    }
+    var startBtn = document.getElementById('startBtn');
+    if(startBtn) startBtn.addEventListener('click', function(){ var ni=document.getElementById('nameInput'); submitName(ni?ni.value:state.nameDraft); });
+    var changeNameBtn = document.getElementById('changeNameBtn'); if(changeNameBtn) changeNameBtn.addEventListener('click', function(){ goWelcome(progress.name); });
     document.querySelectorAll('.level-stop-btn').forEach(function(btn){
       btn.addEventListener('click', function(){ if(!btn.disabled) openLevel(parseInt(btn.getAttribute('data-level'),10)); });
     });
