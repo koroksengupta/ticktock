@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ticky lernt die Uhr / Ticky Learns the Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Andika&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2B2A33;
+    --ink-soft:#726E80;
+    --surface:#FFFFFF;
+    --surface-2:#FBF6EC;
+    --chrome-bg:#F3EEE1;
+    --accent-hour:#FF6F59;
+    --accent-minute:#1E9E98;
+    --accent-warm:#FFC93C;
+    --success:#3FA968;
+    --success-bg:#E4F6EA;
+    --past-fill: rgba(63,169,104,0.22);
+    --to-fill: rgba(58,130,220,0.20);
+    --pie-fill: rgba(255,111,89,0.28);
+    --shadow: 0 8px 22px rgba(43,42,51,0.14);
+    --radius-lg:28px;
+    --radius-md:18px;
+    --radius-sm:12px;
+    --font-display:'Fredoka', system-ui, sans-serif;
+    --font-body:'Andika', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#F2EFE9; --ink-soft:#C9C4D6; --surface:#2E2C3A; --surface-2:#26243080; --chrome-bg:#201F2B;
+      --shadow: 0 8px 22px rgba(0,0,0,0.45);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#F2EFE9; --ink-soft:#C9C4D6; --surface:#2E2C3A; --surface-2:#26243080; --chrome-bg:#201F2B;
+    --shadow: 0 8px 22px rgba(0,0,0,0.45);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:var(--font-body); color:var(--ink); background:var(--chrome-bg);
+    min-height:100vh; display:flex; justify-content:center; overscroll-behavior:none;
+  }
+  #app{ width:100%; max-width:480px; min-height:100vh; display:flex; flex-direction:column; position:relative; overflow-x:hidden; }
+  .scene{ flex:1; display:flex; flex-direction:column; padding:16px 16px 26px; transition:background 1s ease; }
+  h1,h2,h3{font-family:var(--font-display); margin:0;}
+  button{font-family:var(--font-display); border:none; cursor:pointer;}
+  button:focus-visible, a:focus-visible{outline:3px solid var(--accent-minute); outline-offset:2px;}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
+  .icon-btn{ width:44px; height:44px; border-radius:50%; background:var(--surface); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0;}
+  .title-pill{ display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.72); border-radius:20px; padding:6px 14px; max-width:100%; overflow:hidden;}
+  .title-pill h1{font-size:1rem; color:#2B2A33; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .title-pill .emoji{font-size:1.2rem;}
+
+  /* language toggle */
+  .lang-switch{ display:flex; background:var(--surface); border-radius:20px; box-shadow:var(--shadow); padding:3px; flex-shrink:0; }
+  .lang-switch button{ background:none; padding:6px 10px; border-radius:16px; font-size:.8rem; font-weight:600; color:var(--ink-soft);}
+  .lang-switch button.active{ background:var(--accent-warm); color:#2B2A33; }
+
+  /* map */
+  .map-header{text-align:center; margin:8px 0 18px;}
+  .map-header h1{font-size:1.35rem;}
+  .map-header p{margin:6px 0 0; color:var(--ink-soft); font-size:.9rem;}
+  .map-path{display:flex; flex-wrap:wrap; gap:16px 10px; justify-content:center; padding:6px 2px;}
+  .level-stop{ width:126px; border-radius:var(--radius-lg); padding:14px 10px 12px; box-shadow:var(--shadow); text-align:center; position:relative; color:#2B2A33;}
+  .level-stop.dark-theme{color:#F2EFE9;}
+  .level-stop .badge{ width:54px; height:54px; border-radius:50%; background:rgba(255,255,255,.5); display:flex; align-items:center; justify-content:center; font-size:1.6rem; margin:0 auto 8px;}
+  .level-stop h3{font-size:.85rem; line-height:1.2;}
+  .level-stop .stars{margin-top:6px; font-size:.9rem; letter-spacing:2px;}
+  .level-stop.locked{filter:grayscale(1); opacity:.6;}
+  .level-stop.locked .lock{position:absolute; top:8px; right:10px; font-size:1rem;}
+  .level-stop-btn{width:100%; background:none; padding:0;}
+
+  /* quiz */
+  .prompt-card{
+    background:var(--surface); border-radius:var(--radius-md); box-shadow:var(--shadow);
+    padding:14px 18px; text-align:center; margin:4px auto 12px; font-size:1.05rem; font-weight:600; max-width:340px;
+  }
+  .progress-dots{display:flex; gap:6px; justify-content:center; margin:2px 0 10px;}
+  .dot{width:9px; height:9px; border-radius:50%; background:rgba(0,0,0,.18);}
+  .dot.done{background:var(--success);}
+  .dot.current{background:var(--surface); box-shadow:0 0 0 2px var(--ink-soft);}
+
+  .past-to-legend{display:flex; justify-content:center; gap:10px; margin-bottom:6px;}
+  .pill-label{ font-size:.75rem; font-weight:700; padding:4px 12px; border-radius:14px; }
+  .pill-label.past{background:var(--past-fill); color:#1c5a34;}
+  .pill-label.to{background:var(--to-fill); color:#123a6b;}
+
+  .clock-wrap{ background:var(--surface); border-radius:32px; box-shadow:var(--shadow); padding:12px; margin:2px auto 14px; width:min(76vw, 300px); aspect-ratio:1/1; touch-action:none; }
+  .clock-face{width:100%; height:100%; display:block; touch-action:none;}
+  .clock-bg{fill:var(--surface); stroke:var(--ink-soft); stroke-width:3; opacity:.9;}
+  .clock-eye{fill:var(--ink); opacity:.5;}
+  .clock-smile{stroke:var(--ink); stroke-width:5; fill:none; opacity:.3; stroke-linecap:round;}
+  .clock-number{font-family:var(--font-display); font-weight:600; font-size:19px; fill:var(--ink);}
+  .clock-minute-helper{font-family:var(--font-display); font-weight:500; font-size:11px; fill:var(--accent-minute); opacity:.85;}
+  .hand{stroke-linecap:round; pointer-events:none;}
+  .hand-hour{stroke:var(--accent-hour); stroke-width:9;}
+  .hand-minute{stroke:var(--accent-minute); stroke-width:6;}
+  .clock-pivot{fill:var(--ink); pointer-events:none;}
+  .room-sector{fill:var(--pie-fill); opacity:0; transition:opacity .15s ease;}
+  .room-sector.visible{opacity:1;}
+  .room-label{font-family:var(--font-display); font-weight:700; font-size:15px; fill:var(--ink); text-anchor:middle;}
+  .pie-slice{fill:var(--pie-fill);}
+  .split-half{opacity:.9;}
+  .scaffold-bubble{ transition:opacity .2s ease; }
+  .scaffold-bubble text{font-family:var(--font-display); font-weight:700; font-size:14px; fill:#fff; text-anchor:middle;}
+  .scaffold-bubble circle{fill:var(--accent-minute);}
+  .drag-hit{fill:transparent; cursor:grab; touch-action:none;}
+  .hand-knob{pointer-events:none;}
+  .hand-knob.hour{fill:var(--accent-hour);}
+  .hand-knob.minute{fill:var(--accent-minute);}
+
+  .helper-toggle{ align-self:center; margin:0 0 12px; background:var(--surface); border-radius:20px; box-shadow:var(--shadow); padding:7px 14px; font-size:.85rem; color:var(--ink); display:flex; gap:6px; align-items:center;}
+  .helper-toggle.on{background:var(--accent-warm);}
+
+  /* text-only rounds (Minute Math) */
+  .minute-math-badge{ align-self:center; background:var(--accent-warm); color:#2B2A33; font-size:.78rem; font-weight:700; border-radius:14px; padding:4px 14px; margin:0 auto 8px; }
+  .bridge-wrap{margin:6px auto 4px; max-width:340px; width:100%;}
+  .bridge-bar{position:relative; height:32px; border-radius:16px; background:var(--surface-2); overflow:hidden; box-shadow:inset 0 0 0 2px var(--ink-soft);}
+  .bridge-fill{position:absolute; top:0; bottom:0; background:linear-gradient(90deg,var(--accent-hour),var(--accent-minute)); border-radius:16px;}
+  .bridge-divider{position:absolute; top:-4px; bottom:-4px; left:50%; width:3px; margin-left:-1.5px; background:var(--ink); opacity:.45;}
+  .bridge-hours{display:flex; justify-content:space-between; font-size:.78rem; color:var(--ink-soft); margin-top:4px; padding:0 2px; font-weight:600;}
+  .equation-card{background:var(--surface); border-radius:var(--radius-md); box-shadow:var(--shadow); padding:12px 16px; text-align:center; margin:8px auto; font-size:1.05rem; font-weight:600; max-width:340px;}
+  .equation-card .eq-line{margin:3px 0;}
+  .equation-card .eq-highlight{color:var(--accent-hour);}
+  .answers{display:flex; flex-direction:column; gap:10px; margin-top:10px;}
+  .btn-answer{ background:var(--surface); border-radius:var(--radius-md); box-shadow:var(--shadow); padding:14px 12px; font-size:1.3rem; font-weight:600; color:var(--ink); display:flex; align-items:center; justify-content:center; min-height:58px; transition:opacity .2s ease;}
+  .btn-answer--correct{background:var(--success-bg); box-shadow:0 0 0 3px var(--success), var(--shadow);}
+  .btn-answer--wrong{opacity:.32; pointer-events:none;}
+  html.motion-ok .btn-answer--wrong{animation:shake .32s ease;}
+  html.motion-ok .btn-answer--correct{animation:pop .35s ease;}
+  @keyframes shake{0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 75%{transform:translateX(6px);}}
+  @keyframes pop{0%{transform:scale(1);} 45%{transform:scale(1.06);} 100%{transform:scale(1);}}
+
+  .star-fx, .pop-fx{position:fixed; font-size:1.3rem; pointer-events:none; z-index:50;}
+  html.motion-ok .star-fx{animation:rise .9s ease forwards;}
+  html.motion-ok .pop-fx{animation:pop-rise .7s ease forwards;}
+  @keyframes rise{0%{transform:translateY(0) scale(.6); opacity:1;} 100%{transform:translateY(-70px) scale(1.1); opacity:0;}}
+  @keyframes pop-rise{0%{transform:scale(.4); opacity:1;} 60%{transform:scale(1.3); opacity:1;} 100%{transform:scale(1.6); opacity:0;}}
+
+  .complete-card{margin:auto; text-align:center; background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:30px 22px;}
+  .complete-card .big-emoji{font-size:2.4rem;}
+  .stars-row{font-size:2.1rem; margin:12px 0; letter-spacing:6px;}
+  .star-pop{display:inline-block; opacity:0;}
+  html.motion-ok .star-pop{animation:starpop .4s ease forwards;}
+  @keyframes starpop{0%{opacity:0; transform:scale(.2) rotate(-15deg);} 100%{opacity:1; transform:scale(1) rotate(0);}}
+  .best-time{color:var(--ink-soft); font-size:.85rem; margin-top:-4px;}
+  .complete-actions{display:flex; flex-direction:column; gap:10px; margin-top:16px;}
+  .btn-primary, .btn-secondary{border-radius:20px; padding:14px 20px; font-size:1rem; font-weight:600; box-shadow:var(--shadow);}
+  .btn-primary{background:var(--accent-warm); color:#2B2A33;}
+  .btn-secondary{background:var(--surface-2); color:var(--ink);}
+
+  .modal-backdrop{position:fixed; inset:0; background:rgba(20,18,30,.45); display:flex; align-items:center; justify-content:center; z-index:60; padding:24px;}
+  .modal{background:var(--surface); border-radius:var(--radius-lg); padding:22px; max-width:340px; width:100%; box-shadow:var(--shadow);}
+  .modal h3{margin-bottom:12px;}
+  .legend-row{display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:.92rem;}
+  .legend-swatch{width:26px; height:8px; border-radius:4px;}
+  .modal .btn-primary{width:100%; margin-top:8px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function(){
+  "use strict";
+
+  var prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!prefersReducedMotion){ document.documentElement.classList.add('motion-ok'); }
+
+  var STORAGE_KEY = 'tickyUhrProgress_v2';
+  var ROUNDS_PER_LEVEL = 6;
+
+  // ---------------- i18n ----------------
+  var STRINGS = {
+    en: {
+      appTitle: "Ticky Learns the Clock",
+      mapSubtitle: "Play each skill at your own pace \u2013 no grades, just practice.",
+      home: "Home",
+      complete: "Level complete!",
+      retry: "Play again",
+      next: "Next level",
+      toMap: "Level map",
+      bestTime: function(s){ return "Best time so far: " + s + "s"; },
+      legendTitle: "The Two Hands",
+      legendHour: "Short hand = hour",
+      legendMinute: "Long hand = minute",
+      legendClose: "Got it!",
+      scaffoldToggle: "Training wheels",
+      minUnit: "min",
+      minuteMathLabel: "Minute Math",
+      levels: {
+        1: { title:"The Hour Hand Hero",
+             prompt: function(h){ return "Bring the hand into the room of " + h + "!"; },
+             roomLabel: function(n){ return "Room of " + n; } },
+        2: { title:"The Half & Quarter Slice",
+             prompt: function(phrase){ return "Show me: " + phrase; } },
+        3: { title:"The 5-Minute Skip-Counter",
+             prompt: function(t){ return "Set the clock to " + t; } },
+        4: { title:"Past or To?",
+             promptDigital: function(t){ return "Set the clock to " + t; },
+             promptPhrase: function(phrase){ return "Show me: " + phrase; },
+             pastLabel:"PAST", toLabel:"TO" },
+        5: { title:"The Master Chronometer",
+             prompt: function(start, elapsed){ return "Ticky starts at " + start + ". " + elapsed + " minutes pass. What time is it now?"; },
+             whatTimeNow: "So what time is it now?",
+             hourWord: "hour" }
+      }
+    },
+    de: {
+      appTitle: "Ticky lernt die Uhr",
+      mapSubtitle: "\u00dcbe jede F\u00e4higkeit in deinem eigenen Tempo \u2013 ganz ohne Noten.",
+      home: "Start",
+      complete: "Stufe geschafft!",
+      retry: "Nochmal spielen",
+      next: "N\u00e4chste Stufe",
+      toMap: "Zur \u00dcbersicht",
+      bestTime: function(s){ return "Schnellste Zeit bisher: " + s + "s"; },
+      legendTitle: "Die zwei Zeiger",
+      legendHour: "Kurzer Zeiger = Stunde",
+      legendMinute: "Langer Zeiger = Minute",
+      legendClose: "Alles klar!",
+      scaffoldToggle: "St\u00fctzr\u00e4der",
+      minUnit: "Min.",
+      minuteMathLabel: "Minuten-Mathe",
+      levels: {
+        1: { title:"Stunden-Helden",
+             prompt: function(h){ return "Bring den Zeiger ins Zimmer der " + h + "!"; },
+             roomLabel: function(n){ return "Zimmer der " + n; } },
+        2: { title:"Halb & Viertel",
+             prompt: function(phrase){ return "Zeig mir: " + phrase; } },
+        3: { title:"5-Minuten-Z\u00e4hler",
+             prompt: function(t){ return "Stell die Uhr auf " + t; } },
+        4: { title:"Vor oder Nach?",
+             promptDigital: function(t){ return "Stell die Uhr auf " + t; },
+             promptPhrase: function(phrase){ return "Zeig mir: " + phrase; },
+             pastLabel:"NACH", toLabel:"VOR" },
+        5: { title:"Der Zeit-Meister",
+             prompt: function(start, elapsed){ return "Ticky startet um " + start + ". " + elapsed + " Minuten vergehen. Wie sp\u00e4t ist es jetzt?"; },
+             whatTimeNow: "Wie sp\u00e4t ist es dann?",
+             hourWord: "Stunde" }
+      }
+    }
+  };
+
+  function T(){ return STRINGS[state.lang]; }
+
+  function phraseFor(hour, minute, lang){
+    var h = wrapHour(hour), nextH = wrapHour(hour+1);
+    if(lang==='de'){
+      if(minute===0) return h + ' Uhr';
+      if(minute===15) return 'Viertel nach ' + h;
+      if(minute===30) return 'Halb ' + nextH;
+      if(minute===45) return 'Viertel vor ' + nextH;
+      if(minute<30) return minute + ' nach ' + h;
+      return (60-minute) + ' vor ' + nextH;
+    }
+    if(minute===0) return h + " o'clock";
+    if(minute===15) return 'Quarter past ' + h;
+    if(minute===30) return 'Half past ' + h;
+    if(minute===45) return 'Quarter to ' + nextH;
+    if(minute<30) return minute + ' past ' + h;
+    return (60-minute) + ' to ' + nextH;
+  }
+
+  // ---------------- level config ----------------
+  var LEVELS = [
+    { id:1, mode:'hourOnly', theme:['#FFD98E','#FFF6E3'], dark:false },
+    { id:2, mode:'minute', minuteSet:[0,15,30,45], theme:['#FFD6EC','#F3E9FF'], dark:false, pie:true },
+    { id:3, mode:'minute', minuteSet:[0,5,10,15,20,25,30,35,40,45,50,55], theme:['#C9F3E1','#EAFBF4'], dark:false, scaffold:true },
+    { id:4, mode:'minute', minuteSet:[0,5,10,15,20,25,30,35,40,45,50,55], theme:['#E8F5FF','#F2FFEC'], dark:false, splitFace:true },
+    { id:5, mode:'minute', minuteSet:null, theme:['#241F3D','#4A3F73'], dark:true, elapsed:true }
+  ];
+  function levelById(id){ for(var i=0;i<LEVELS.length;i++){ if(LEVELS[i].id===id) return LEVELS[i]; } return null; }
+  var LEVEL_ICONS = {1:'\uD83E\uDDB8',2:'\uD83E\uDD67',3:'\uD83D\uDD22',4:'\u2194\uFE0F',5:'\u23F1\uFE0F'};
+
+  // ---------------- persistence ----------------
+  function loadProgress(){
+    try{ var raw = localStorage.getItem(STORAGE_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+    return { stars:{}, unlocked:1, lang:'de', bestTimeLevel5:null };
+  }
+  function saveProgress(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); }catch(e){} }
+  var progress = loadProgress();
+
+  // ---------------- state ----------------
+  var state = {
+    screen:'map',
+    lang: progress.lang || 'de',
+    currentLevelId:null,
+    roundIndex:0,
+    firstTryCorrectCount:0,
+    wrongThisRound:false,
+    showLegend:false,
+    minuteHelperOn:true,
+    round:null,          // current round target data
+    roundStartTime:null,
+    live:null            // live drag state, see startRoundLive()
+  };
+
+  // ---------------- math helpers ----------------
+  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function pick(arr){ return arr[randInt(0,arr.length-1)]; }
+  function shuffleArr(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){ var j=randInt(0,i); var tmp=a[i]; a[i]=a[j]; a[j]=tmp; }
+    return a;
+  }
+  function wrapHour(h){ return ((h-1)%12+12)%12+1; }
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function fmt(h,m){ return h + ':' + pad2(m); }
+  function polar(angleDeg, r, cx, cy){
+    cx = cx===undefined?150:cx; cy = cy===undefined?150:cy;
+    var rad = angleDeg*Math.PI/180;
+    return { x: cx + r*Math.sin(rad), y: cy - r*Math.cos(rad) };
+  }
+  function sectorPath(startDeg, endDeg, innerR, outerR){
+    var large = (endDeg-startDeg) > 180 ? 1 : 0;
+    var p1 = polar(startDeg, outerR), p2 = polar(endDeg, outerR);
+    if(innerR<=0){
+      return 'M150,150 L'+p1.x.toFixed(2)+','+p1.y.toFixed(2)+' A'+outerR+','+outerR+' 0 '+large+' 1 '+p2.x.toFixed(2)+','+p2.y.toFixed(2)+' Z';
+    }
+    var p3 = polar(endDeg, innerR), p4 = polar(startDeg, innerR);
+    return 'M'+p4.x.toFixed(2)+','+p4.y.toFixed(2)+
+           ' L'+p1.x.toFixed(2)+','+p1.y.toFixed(2)+
+           ' A'+outerR+','+outerR+' 0 '+large+' 1 '+p2.x.toFixed(2)+','+p2.y.toFixed(2)+
+           ' L'+p3.x.toFixed(2)+','+p3.y.toFixed(2)+
+           ' A'+innerR+','+innerR+' 0 '+large+' 0 '+p4.x.toFixed(2)+','+p4.y.toFixed(2)+' Z';
+  }
+  function roomIndexFromAngle(angleDeg){ var a=((angleDeg%360)+360)%360; return Math.floor(a/30)%12; } // 0..11, 0 => "room of 12"
+  function roomLabelFromIndex(idx){ return idx===0?12:idx; }
+  function angleFromEvent(svgEl, clientX, clientY){
+    var rect = svgEl.getBoundingClientRect();
+    var size = rect.width || 300;
+    var x = (clientX-rect.left)/size*300 - 150;
+    var y = (clientY-rect.top)/size*300 - 150;
+    var deg = Math.atan2(x,-y)*180/Math.PI;
+    if(deg<0) deg+=360;
+    return deg;
+  }
+  function snapToSetCircular(value, set){
+    var norm = ((value%60)+60)%60;
+    var best = set[0], bestDist = Infinity;
+    for(var i=0;i<set.length;i++){
+      var d = Math.abs(norm-set[i]);
+      d = Math.min(d, 60-d);
+      if(d<bestDist){ bestDist=d; best=set[i]; }
+    }
+    return best;
+  }
+  function snapToNearestInt(value){
+    var norm = ((Math.round(value)%60)+60)%60;
+    return norm;
+  }
+
+  // ---------------- round generation ----------------
+  function generateRound(level, prevRound, roundType){
+    var attempts=0, r;
+    do{
+      r = buildRoundFor(level, roundType);
+      attempts++;
+    } while(prevRound && sameRound(level, r, prevRound) && attempts<15);
+    return r;
+  }
+  function sameRound(level, a, b){
+    if(level.id===1) return a.hour===b.hour;
+    if(level.id===5) return a.startHour===b.startHour && a.startMinute===b.startMinute && a.elapsed===b.elapsed;
+    return a.hour===b.hour && a.minute===b.minute;
+  }
+  function buildRoundFor(level, roundType){
+    if(level.id===1){
+      return { hour: randInt(1,12), type:'drag' };
+    }
+    if(level.id===2){
+      return { hour: randInt(1,12), minute: pick(level.minuteSet), type:'drag' };
+    }
+    if(level.id===3){
+      return { hour: randInt(1,12), minute: pick(level.minuteSet), type:'drag' };
+    }
+    if(level.id===4){
+      return { hour: randInt(1,12), minute: pick(level.minuteSet), promptType: Math.random()<0.5?'digital':'phrase', type:'drag' };
+    }
+    if(level.id===5){
+      return roundType==='text' ? buildTextRound() : buildDragRoundLevel5();
+    }
+  }
+  function buildDragRoundLevel5(){
+    var startHour = randInt(1,12), startMinute = pick([0,5,10,15,20,25,30,35,40,45,50,55]);
+    var elapsedOptions = [5,10,15,20,25,30,35,40,45,50,55,65,70,75,80,85];
+    var elapsed = pick(elapsedOptions);
+    var total = startMinute + elapsed;
+    var hourWraps = Math.floor(total/60);
+    var targetMinute = total % 60;
+    var targetHour = wrapHour(startHour + hourWraps);
+    return { startHour:startHour, startMinute:startMinute, elapsed:elapsed, hour:targetHour, minute:targetMinute, type:'drag' };
+  }
+  // Text-only round: no clock face. Deliberately forces the total minutes to land
+  // strictly beyond 60 (but under 120) so the "carry the hour" arithmetic is always
+  // the thing being practiced - that's the whole point of this round type.
+  function buildTextRound(){
+    var startHour = randInt(1,12);
+    var startMinute = pick([0,5,10,15,20,25,30,35,40,45,50,55]);
+    var neededToReach60 = 60 - startMinute;             // 5..60
+    var extraPastHour = pick([5,10,15,20,25,30,35,40,45,50,55]);
+    var elapsed = neededToReach60 + extraPastHour;       // total always in [65,115]
+    var total = startMinute + elapsed;                   // == 60 + extraPastHour
+    var targetMinute = total % 60;                        // == extraPastHour
+    var targetHour = wrapHour(startHour + 1);              // always exactly one carry
+    return { startHour:startHour, startMinute:startMinute, elapsed:elapsed, hour:targetHour, minute:targetMinute, type:'text' };
+  }
+  // Three answer options for a text round: the correct time, plus the two most
+  // common real mistakes - forgetting to carry the hour, and over-carrying by one.
+  function buildTextOptions(round){
+    var target = { hour: round.hour, minute: round.minute };
+    var opts = [target];
+    function addUnique(t){
+      if(t.hour===target.hour && t.minute===target.minute) return;
+      for(var i=0;i<opts.length;i++){ if(opts[i].hour===t.hour && opts[i].minute===t.minute) return; }
+      opts.push(t);
+    }
+    addUnique({ hour: round.startHour, minute: (round.startMinute+round.elapsed)%60 }); // forgot to carry
+    addUnique({ hour: wrapHour(round.hour+1), minute: round.minute });                   // over-carried
+    var guard = 0;
+    while(opts.length<3 && guard<10){
+      addUnique({ hour: wrapHour(round.hour + (Math.random()<0.5?1:-1)), minute: round.minute });
+      guard++;
+    }
+    return shuffleArr(opts.slice(0,3));
+  }
+
+  // ---------------- audio ----------------
+  var audioCtx = null;
+  function ensureAudio(){
+    if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+    else if(audioCtx.state==='suspended'){ audioCtx.resume(); }
+  }
+  function tone(freq, start, dur, vol){
+    if(!audioCtx) return;
+    var t0 = audioCtx.currentTime+start;
+    var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type='sine'; osc.frequency.value=freq;
+    gain.gain.setValueAtTime(0,t0);
+    gain.gain.linearRampToValueAtTime(vol||0.15, t0+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0+dur+0.02);
+  }
+  function playSuccess(){ tone(523.25,0,0.16,0.13); tone(659.25,0.1,0.18,0.13); tone(783.99,0.2,0.28,0.14); }
+  function playOops(){ tone(220,0,0.14,0.07); }
+  function playPop(){ tone(392,0,0.1,0.12); tone(587.33,0.08,0.16,0.13); }
+
+  function spawnFx(x, y, emoji, cls){
+    var el = document.createElement('div');
+    el.className = cls || 'star-fx';
+    el.textContent = emoji || '\u2B50';
+    el.style.left = (x-10)+'px'; el.style.top = (y-10)+'px';
+    document.body.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 950);
+  }
+  function spawnStarBurst(centerEl){
+    var rect = centerEl.getBoundingClientRect();
+    for(var i=0;i<3;i++){
+      spawnFx(rect.left+rect.width/2+(i-1)*22, rect.top+rect.height/2, '\u2B50', 'star-fx');
+    }
+  }
+  function spawnPopFx(clockWrapEl){
+    var rect = clockWrapEl.getBoundingClientRect();
+    var top = polar(0, 0.46*rect.width); // approx position of 12 o'clock on screen, relative offset
+    spawnFx(rect.left+rect.width/2, rect.top + rect.height*0.08, '\u2728', 'pop-fx');
+  }
+
+  // ---------------- SVG clock building ----------------
+  function buildClockSVG(level, hourDisplay, minuteDisplay, opts){
+    opts = opts||{};
+    var showNumbers = level.id!==99; // always true currently; kept for future flexibility
+    var showTicks60 = level.id>=3; // fine ticks from level3 onward (5-minute+ precision matters)
+    var hasMinuteHand = level.mode==='minute';
+    var hourAngle = (hourDisplay%12)*30 + (minuteDisplay||0)*0.5;
+    var minuteAngle = (minuteDisplay||0)*6;
+
+    var ticks='';
+    for(var i=0;i<60;i++){
+      var isMajor = i%5===0;
+      if(!showTicks60 && !isMajor) continue;
+      var angle=i*6, outerR=140, innerR=isMajor?116:130, sw=isMajor?5:2;
+      var p1=polar(angle,outerR), p2=polar(angle,innerR);
+      ticks += '<line x1="'+p1.x.toFixed(1)+'" y1="'+p1.y.toFixed(1)+'" x2="'+p2.x.toFixed(1)+'" y2="'+p2.y.toFixed(1)+'" stroke="var(--ink-soft)" stroke-width="'+sw+'" stroke-linecap="round"/>';
+    }
+    var numbers='';
+    for(var n=1;n<=12;n++){
+      var nA=n*30, R=100, p=polar(nA,R);
+      numbers += '<text x="'+p.x.toFixed(1)+'" y="'+(p.y+7).toFixed(1)+'" text-anchor="middle" class="clock-number">'+n+'</text>';
+    }
+    var splitFace='';
+    if(level.splitFace){
+      splitFace = '<path d="'+sectorPath(0,180,0,142)+'" fill="var(--past-fill)" class="split-half"/>' +
+                  '<path d="'+sectorPath(180,360,0,142)+'" fill="var(--to-fill)" class="split-half"/>';
+    }
+    var pieSlice = '<path id="pieSlice" class="pie-slice" d="'+ (minuteAngle>0.5 ? sectorPath(0, minuteAngle, 0, 132) : 'M150,150') +'"/>';
+    var roomSector = '<path id="roomHighlight" class="room-sector" d="'+ sectorPath(0,30,60,135) +'"/>';
+    var roomLabel = '<text id="roomLabelText" class="room-label" x="150" y="46" opacity="0"></text>';
+    var scaffold = '<g id="scaffoldBubble" opacity="0"><circle cx="0" cy="0" r="16"/><text x="0" y="4">--</text></g>';
+
+    var hourHandTip = polar(hourAngle,55), minuteHandTip = hasMinuteHand ? polar(minuteAngle,95) : null;
+
+    var hourHandle = '<g id="hourHandle" transform="translate('+hourHandTip.x.toFixed(1)+','+hourHandTip.y.toFixed(1)+')">' +
+        '<circle class="drag-hit" r="34"/><circle class="hand-knob hour" r="13"/></g>';
+    var minuteHandle = hasMinuteHand ? '<g id="minuteHandle" transform="translate('+minuteHandTip.x.toFixed(1)+','+minuteHandTip.y.toFixed(1)+')">' +
+        '<circle class="drag-hit" r="34"/><circle class="hand-knob minute" r="12"/></g>' : '';
+
+    return '' +
+      '<svg viewBox="0 0 300 300" class="clock-face" id="clockSvg" role="img" aria-label="Uhr">' +
+        '<circle cx="150" cy="150" r="142" class="clock-bg"/>' +
+        splitFace +
+        (level.pie ? pieSlice : '') +
+        (level.id===1 ? roomSector+roomLabel : '') +
+        '<circle cx="122" cy="118" r="9" class="clock-eye"/><circle cx="178" cy="118" r="9" class="clock-eye"/>' +
+        '<path d="M126,190 Q150,208 174,190" class="clock-smile"/>' +
+        ticks + numbers +
+        (level.scaffold ? scaffold : '') +
+        '<line id="hourHand" x1="150" y1="150" x2="'+hourHandTip.x.toFixed(1)+'" y2="'+hourHandTip.y.toFixed(1)+'" class="hand hand-hour"/>' +
+        (hasMinuteHand ? '<line id="minuteHand" x1="150" y1="150" x2="'+minuteHandTip.x.toFixed(1)+'" y2="'+minuteHandTip.y.toFixed(1)+'" class="hand hand-minute"/>' : '') +
+        '<circle cx="150" cy="150" r="8" class="clock-pivot"/>' +
+        (level.id===1 ? hourHandle : minuteHandle) +
+      '</svg>';
+  }
+
+  // ---------------- live update during drag ----------------
+  function updateLiveClock(level, hourDisplay, minuteDisplay, dragMode){
+    var svg = document.getElementById('clockSvg');
+    if(!svg) return;
+    var hourAngle = (hourDisplay%12)*30 + (minuteDisplay||0)*0.5;
+    var minuteAngle = (minuteDisplay||0)*6;
+    var hourHandTip = polar(hourAngle,55);
+    var hourHand = document.getElementById('hourHand');
+    if(hourHand){ hourHand.setAttribute('x2', hourHandTip.x.toFixed(1)); hourHand.setAttribute('y2', hourHandTip.y.toFixed(1)); }
+    var hourHandle = document.getElementById('hourHandle');
+    if(hourHandle && dragMode==='hour'){ hourHandle.setAttribute('transform','translate('+hourHandTip.x.toFixed(1)+','+hourHandTip.y.toFixed(1)+')'); }
+
+    if(level.mode==='minute'){
+      var minuteHandTip = polar(minuteAngle,95);
+      var minuteHand = document.getElementById('minuteHand');
+      if(minuteHand){ minuteHand.setAttribute('x2', minuteHandTip.x.toFixed(1)); minuteHand.setAttribute('y2', minuteHandTip.y.toFixed(1)); }
+      var minuteHandle = document.getElementById('minuteHandle');
+      if(minuteHandle){ minuteHandle.setAttribute('transform','translate('+minuteHandTip.x.toFixed(1)+','+minuteHandTip.y.toFixed(1)+')'); }
+      if(level.pie){
+        var pie = document.getElementById('pieSlice');
+        if(pie){ pie.setAttribute('d', minuteAngle>0.5 ? sectorPath(0,minuteAngle,0,132) : 'M150,150'); }
+      }
+      if(level.scaffold){
+        updateScaffoldBubble(minuteAngle);
+      }
+    }
+    if(level.id===1){
+      var idx = roomIndexFromAngle(hourAngle);
+      var sector = document.getElementById('roomHighlight');
+      var label = document.getElementById('roomLabelText');
+      if(sector){ sector.setAttribute('d', sectorPath(idx*30, idx*30+30, 60, 135)); sector.classList.add('visible'); }
+      if(label){ label.textContent = T().levels[1].roomLabel(roomLabelFromIndex(idx)); label.setAttribute('opacity','1'); }
+    }
+  }
+  function updateScaffoldBubble(minuteAngle){
+    var g = document.getElementById('scaffoldBubble');
+    if(!g) return;
+    if(!state.minuteHelperOn){ g.setAttribute('opacity','0'); return; }
+    var nearestNumber = Math.round(minuteAngle/30) % 12;
+    if(nearestNumber===0) nearestNumber=12;
+    var distToNumberDeg = Math.abs(minuteAngle - (nearestNumber%12)*30);
+    distToNumberDeg = Math.min(distToNumberDeg, 360-distToNumberDeg);
+    if(distToNumberDeg>16){ g.setAttribute('opacity','0'); return; }
+    var pos = polar((nearestNumber%12)*30, 76);
+    g.setAttribute('transform','translate('+pos.x.toFixed(1)+','+pos.y.toFixed(1)+')');
+    g.querySelector('text').textContent = nearestNumber*5;
+    g.setAttribute('opacity','1');
+  }
+
+  // ---------------- drag controller ----------------
+  var dragCtl = { active:false, mode:null, prevAngle:null };
+
+  function attachDrag(level){
+    var svg = document.getElementById('clockSvg');
+    if(!svg) return;
+    var mode = level.id===1 ? 'hour' : 'minute';
+    var handle = document.getElementById(mode==='hour' ? 'hourHandle' : 'minuteHandle');
+    if(!handle) return;
+
+    function onDown(e){
+      dragCtl.active = true; dragCtl.mode = mode;
+      var pid = e.pointerId;
+      try{ handle.setPointerCapture(pid); }catch(err){}
+      dragCtl.prevAngle = angleFromEvent(svg, e.clientX, e.clientY);
+      ensureAudio();
+      if(e.preventDefault) e.preventDefault();
+    }
+    function onMove(e){
+      if(!dragCtl.active) return;
+      var angle = angleFromEvent(svg, e.clientX, e.clientY);
+      var diff = angle - dragCtl.prevAngle;
+      var wrapDelta = 0;
+      if(diff < -180) wrapDelta = 1;
+      else if(diff > 180) wrapDelta = -1;
+      dragCtl.prevAngle = angle;
+
+      if(mode==='hour'){
+        state.live.hourAngleDeg = angle;
+        var idx = roomIndexFromAngle(angle);
+        state.live.roomIndex = idx;
+        updateLiveClock(level, angle/30, 0, 'hour');
+      } else {
+        if(wrapDelta!==0){
+          state.live.hourWrapCount += wrapDelta;
+          playPop();
+          var wrapEl = document.querySelector('.clock-wrap');
+          if(wrapEl) spawnPopFx(wrapEl);
+        }
+        state.live.minuteAngleDeg = angle;
+        var minuteContinuous = angle/6;
+        var effectiveHour = wrapHour(state.live.baseHour + state.live.hourWrapCount);
+        state.live.currentMinute = minuteContinuous;
+        state.live.currentHour = effectiveHour;
+        updateLiveClock(level, effectiveHour, minuteContinuous, 'minute');
+      }
+      if(e.preventDefault) e.preventDefault();
+    }
+    function onUp(){
+      if(!dragCtl.active) return;
+      dragCtl.active = false;
+      handleRelease(level);
+    }
+    handle.addEventListener('pointerdown', onDown);
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
+  }
+
+  function startRoundLive(level, round){
+    if(level.id===1){
+      state.live = { hourAngleDeg:0, roomIndex:0 };
+    } else if(level.id===5){
+      state.live = { baseHour: round.startHour, hourWrapCount:0, currentMinute: round.startMinute, currentHour: round.startHour, minuteAngleDeg: round.startMinute*6 };
+    } else {
+      state.live = { baseHour: round.hour, hourWrapCount:0, currentMinute:0, currentHour: round.hour, minuteAngleDeg:0 };
+    }
+  }
+
+  function handleRelease(level){
+    var round = state.round;
+    var correct = false;
+    if(level.id===1){
+      var releasedRoom = roomLabelFromIndex(state.live.roomIndex);
+      correct = (releasedRoom === round.hour);
+    } else {
+      var snapSet = level.minuteSet;
+      var snappedMinute = snapSet ? snapToSetCircular(state.live.currentMinute, snapSet) : snapToNearestInt(state.live.currentMinute);
+      var rawEffectiveHour = wrapHour(state.live.baseHour + state.live.hourWrapCount);
+      correct = (snappedMinute === round.minute) && (rawEffectiveHour === round.hour);
+      // snap the rendered hand to the exact matched position for satisfying feedback either way
+      updateLiveClock(level, rawEffectiveHour, snappedMinute, 'minute');
+    }
+    if(correct){
+      if(!state.wrongThisRound) state.firstTryCorrectCount++;
+      playSuccess();
+      var clockWrap = document.querySelector('.clock-wrap');
+      if(clockWrap) spawnStarBurst(clockWrap);
+      setTimeout(nextRoundOrFinish, 900);
+    } else {
+      state.wrongThisRound = true;
+      playOops();
+    }
+  }
+
+  function handleTextAnswerTap(idx, btn){
+    if(btn.disabled) return;
+    ensureAudio();
+    var opt = state.textOptions[idx];
+    var round = state.round;
+    var isCorrect = (opt.hour===round.hour && opt.minute===round.minute);
+    if(isCorrect){
+      if(!state.wrongThisRound) state.firstTryCorrectCount++;
+      btn.classList.add('btn-answer--correct');
+      playSuccess();
+      var burstEl = document.querySelector('.equation-card') || btn;
+      spawnStarBurst(burstEl);
+      setTimeout(nextRoundOrFinish, 900);
+    } else {
+      state.wrongThisRound = true;
+      btn.disabled = true;
+      btn.classList.add('btn-answer--wrong');
+      playOops();
+    }
+  }
+
+  // ---------------- flow ----------------
+  function goMap(){ state.screen='map'; render(); }
+
+  function openLevel(id){
+    state.currentLevelId = id;
+    state.roundIndex = 0;
+    state.firstTryCorrectCount = 0;
+    state.screen = 'quiz';
+    newRound(null);
+    render();
+  }
+
+  function newRound(prevRound){
+    var level = levelById(state.currentLevelId);
+    // Level 5 alternates between hands-on drag rounds and text-only "minute math" rounds.
+    var roundType = (level.id===5) ? (state.roundIndex%2===0 ? 'drag' : 'text') : 'drag';
+    state.round = generateRound(level, prevRound, roundType);
+    state.wrongThisRound = false;
+    state.roundStartTime = Date.now();
+    if(state.round.type==='text'){
+      state.live = null;
+      state.textOptions = buildTextOptions(state.round);
+    } else {
+      startRoundLive(level, state.round);
+    }
+  }
+
+  function nextRoundOrFinish(){
+    var level = levelById(state.currentLevelId);
+    var prev = state.round;
+    state.roundIndex++;
+    if(state.roundIndex >= ROUNDS_PER_LEVEL){ finishLevel(); }
+    else { newRound(prev); render(); }
+  }
+
+  function finishLevel(){
+    var level = levelById(state.currentLevelId);
+    var stars = state.firstTryCorrectCount>=ROUNDS_PER_LEVEL ? 3 :
+                state.firstTryCorrectCount>=ROUNDS_PER_LEVEL-2 ? 2 : 1;
+    progress.stars[level.id] = Math.max(progress.stars[level.id]||0, stars);
+    if(level.id===progress.unlocked && level.id<LEVELS.length){ progress.unlocked = level.id+1; }
+    var elapsedSeconds = null;
+    if(level.id===5){
+      elapsedSeconds = Math.round((Date.now()-state.levelStartTime)/1000);
+      if(progress.bestTimeLevel5===null || elapsedSeconds<progress.bestTimeLevel5){ progress.bestTimeLevel5 = elapsedSeconds; }
+    }
+    saveProgress();
+    state.lastStars = stars;
+    state.lastElapsedSeconds = elapsedSeconds;
+    state.screen = 'complete';
+    render();
+  }
+
+  function toggleLegend(){ state.showLegend=!state.showLegend; render(); }
+  function toggleHelper(){ state.minuteHelperOn=!state.minuteHelperOn; render(); }
+  function setLang(l){ if(state.lang===l) return; state.lang=l; progress.lang=l; saveProgress(); render(); }
+
+  // ---------------- render: map ----------------
+  function starsString(n){ var s=''; for(var i=0;i<3;i++){ s+= (i<n?'\u2B50':'\u2606'); } return s; }
+
+  function renderLangSwitch(){
+    return '<div class="lang-switch">' +
+      '<button data-lang="de" class="'+(state.lang==='de'?'active':'')+'">DE</button>' +
+      '<button data-lang="en" class="'+(state.lang==='en'?'active':'')+'">EN</button>' +
+      '</div>';
+  }
+
+  function renderMap(){
+    var t = T();
+    var stops = LEVELS.map(function(lvl){
+      var locked = lvl.id > progress.unlocked;
+      var stars = progress.stars[lvl.id]||0;
+      var title = t.levels[lvl.id].title;
+      return '' +
+        '<div class="level-stop'+(locked?' locked':'')+(lvl.dark?' dark-theme':'')+'" style="background:linear-gradient(160deg,'+lvl.theme[0]+','+lvl.theme[1]+')">' +
+          (locked?'<span class="lock">\uD83D\uDD12</span>':'') +
+          '<button class="level-stop-btn" data-level="'+lvl.id+'" '+(locked?'disabled':'')+' aria-label="'+title+'">' +
+            '<div class="badge">'+LEVEL_ICONS[lvl.id]+'</div>' +
+            '<h3>'+title+'</h3>' +
+            '<div class="stars">'+(locked?'':starsString(stars))+'</div>' +
+          '</button>' +
+        '</div>';
+    }).join('');
+    return '' +
+      '<div class="scene">' +
+        '<div class="topbar"><div></div>'+renderLangSwitch()+'</div>' +
+        '<div class="map-header"><h1>'+t.appTitle+'</h1><p>'+t.mapSubtitle+'</p></div>' +
+        '<div class="map-path">'+stops+'</div>' +
+      '</div>';
+  }
+
+  // ---------------- render: quiz ----------------
+  function promptTextFor(level, round){
+    var t = T();
+    if(level.id===1) return t.levels[1].prompt(round.hour);
+    if(level.id===2) return t.levels[2].prompt(phraseFor(round.hour, round.minute, state.lang));
+    if(level.id===3) return t.levels[3].prompt(fmt(round.hour, round.minute));
+    if(level.id===4){
+      if(round.promptType==='digital') return t.levels[4].promptDigital(fmt(round.hour, round.minute));
+      return t.levels[4].promptPhrase(phraseFor(round.hour, round.minute, state.lang));
+    }
+    if(level.id===5) return t.levels[5].prompt(fmt(round.startHour, round.startMinute), round.elapsed);
+  }
+
+  function renderTextRound(level, round){
+    var t = T();
+    var total = round.startMinute + round.elapsed;
+    var leftover = round.minute;
+    var fillLeftPct = (round.startMinute/120*100).toFixed(1);
+    var fillWidthPct = (round.elapsed/120*100).toFixed(1);
+    var optionsHtml = state.textOptions.map(function(opt, idx){
+      return '<button class="btn-answer" data-idx="'+idx+'">'+fmt(opt.hour, opt.minute)+'</button>';
+    }).join('');
+    return '' +
+      '<div class="minute-math-badge">'+t.minuteMathLabel+'</div>' +
+      '<div class="prompt-card">'+promptTextFor(level, round)+'</div>' +
+      '<div class="bridge-wrap">' +
+        '<div class="bridge-bar"><div class="bridge-fill" style="left:'+fillLeftPct+'%;width:'+fillWidthPct+'%"></div><div class="bridge-divider"></div></div>' +
+        '<div class="bridge-hours"><span>'+round.startHour+'</span><span>'+wrapHour(round.startHour+1)+'</span></div>' +
+      '</div>' +
+      '<div class="equation-card">' +
+        '<div class="eq-line">'+round.startMinute+' + '+round.elapsed+' = <span class="eq-highlight">'+total+'</span> '+t.minUnit+'</div>' +
+        '<div class="eq-line">'+total+' '+t.minUnit+' = 1 '+t.levels[5].hourWord+' + <span class="eq-highlight">'+leftover+'</span> '+t.minUnit+'</div>' +
+      '</div>' +
+      '<div class="prompt-card">'+t.levels[5].whatTimeNow+'</div>' +
+      '<div class="answers">'+optionsHtml+'</div>';
+  }
+
+  function renderQuiz(){
+    var level = levelById(state.currentLevelId);
+    var t = T();
+    var dots = '';
+    for(var i=0;i<ROUNDS_PER_LEVEL;i++){
+      dots += '<div class="dot '+(i<state.roundIndex?'done':(i===state.roundIndex?'current':''))+'"></div>';
+    }
+    var topbar = '' +
+      '<div class="topbar">' +
+        '<button class="icon-btn" id="homeBtn" aria-label="'+t.home+'">\uD83C\uDFE0</button>' +
+        '<div class="title-pill"><span class="emoji">'+LEVEL_ICONS[level.id]+'</span><h1>'+t.levels[level.id].title+'</h1></div>' +
+        '<button class="icon-btn" id="legendBtn" aria-label="Help">\u2753</button>' +
+      '</div>' +
+      '<div class="topbar" style="margin-top:-2px;justify-content:center;">'+renderLangSwitch()+'</div>' +
+      '<div class="progress-dots">'+dots+'</div>';
+
+    if(state.round.type==='text'){
+      return '<div class="scene">' + topbar + renderTextRound(level, state.round) + '</div>' +
+        (state.showLegend ? renderLegendModal() : '');
+    }
+
+    var pastToLegend = level.splitFace ?
+      '<div class="past-to-legend"><span class="pill-label past">'+t.levels[4].pastLabel+'</span><span class="pill-label to">'+t.levels[4].toLabel+'</span></div>' : '';
+    var helperBtn = level.scaffold ?
+      '<button class="helper-toggle'+(state.minuteHelperOn?' on':'')+'" id="helperToggle">\uD83D\uDD0D '+t.scaffoldToggle+'</button>' : '';
+
+    var hourForRender, minuteForRender;
+    if(level.id===1){ hourForRender = 0; minuteForRender = 0; }
+    else if(level.id===5){ hourForRender = state.round.startHour; minuteForRender = state.round.startMinute; }
+    else { hourForRender = state.round.hour; minuteForRender = 0; }
+
+    return '' +
+      '<div class="scene">' +
+        topbar +
+        '<div class="prompt-card">'+promptTextFor(level, state.round)+'</div>' +
+        pastToLegend +
+        '<div class="clock-wrap">'+ buildClockSVG(level, hourForRender, minuteForRender, {}) +'</div>' +
+        helperBtn +
+      '</div>' +
+      (state.showLegend ? renderLegendModal() : '');
+  }
+
+  function renderLegendModal(){
+    var t = T();
+    return '' +
+      '<div class="modal-backdrop" id="legendBackdrop">' +
+        '<div class="modal">' +
+          '<h3>'+t.legendTitle+'</h3>' +
+          '<div class="legend-row"><span class="legend-swatch" style="background:var(--accent-hour)"></span>'+t.legendHour+'</div>' +
+          '<div class="legend-row"><span class="legend-swatch" style="background:var(--accent-minute)"></span>'+t.legendMinute+'</div>' +
+          '<button class="btn-primary" id="legendClose">'+t.legendClose+'</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function renderComplete(){
+    var level = levelById(state.currentLevelId);
+    var t = T();
+    var isLast = level.id===LEVELS.length;
+    var nextUnlocked = !isLast && progress.unlocked>level.id;
+    var starsHtml='';
+    for(var i=0;i<3;i++){ starsHtml += '<span class="star-pop" style="animation-delay:'+(i*0.18)+'s">'+(i<state.lastStars?'\u2B50':'\u2606')+'</span>'; }
+    var bestTimeHtml = (level.id===5 && progress.bestTimeLevel5!==null) ?
+      '<div class="best-time">'+t.bestTime(progress.bestTimeLevel5)+'</div>' : '';
+    return '' +
+      '<div class="scene">' +
+        '<div class="topbar" style="justify-content:center;">'+renderLangSwitch()+'</div>' +
+        '<div class="complete-card">' +
+          '<div class="big-emoji">'+LEVEL_ICONS[level.id]+'</div>' +
+          '<h2>'+t.complete+'</h2>' +
+          '<div class="stars-row">'+starsHtml+'</div>' +
+          bestTimeHtml +
+          '<div class="complete-actions">' +
+            '<button class="btn-primary" id="retryBtn">\uD83D\uDD01 '+t.retry+'</button>' +
+            (nextUnlocked ? '<button class="btn-secondary" id="nextBtn">\u27A1\uFE0F '+t.next+'</button>' : '') +
+            '<button class="btn-secondary" id="mapBtn">\uD83C\uDFE0 '+t.toMap+'</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  // ---------------- render dispatcher ----------------
+  function applySceneBg(colors){
+    var scene = document.querySelector('.scene');
+    if(scene && colors){ scene.style.background = 'linear-gradient(160deg, '+colors[0]+', '+colors[1]+')'; }
+  }
+
+  function render(){
+    var app = document.getElementById('app');
+    var html, bg;
+    if(state.screen==='map'){ html = renderMap(); bg = ['#DDEEF7','#FFF6E4']; }
+    else if(state.screen==='quiz'){
+      var level = levelById(state.currentLevelId);
+      if(state.roundIndex===0 && !state.levelStartTimeSetFor){ state.levelStartTime = Date.now(); state.levelStartTimeSetFor = state.currentLevelId; }
+      html = renderQuiz(); bg = level.theme;
+    }
+    else { html = renderComplete(); bg = levelById(state.currentLevelId).theme; state.levelStartTimeSetFor=null; }
+    app.innerHTML = html;
+    applySceneBg(bg);
+    attachHandlers();
+    if(state.screen==='quiz' && state.round && state.round.type!=='text'){ attachDrag(levelById(state.currentLevelId)); }
+  }
+
+  function attachHandlers(){
+    document.querySelectorAll('.level-stop-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){ if(!btn.disabled) openLevel(parseInt(btn.getAttribute('data-level'),10)); });
+    });
+    document.querySelectorAll('.lang-switch button').forEach(function(btn){
+      btn.addEventListener('click', function(){ setLang(btn.getAttribute('data-lang')); });
+    });
+    var homeBtn = document.getElementById('homeBtn'); if(homeBtn) homeBtn.addEventListener('click', goMap);
+    var legendBtn = document.getElementById('legendBtn'); if(legendBtn) legendBtn.addEventListener('click', toggleLegend);
+    var legendClose = document.getElementById('legendClose'); if(legendClose) legendClose.addEventListener('click', toggleLegend);
+    var legendBackdrop = document.getElementById('legendBackdrop');
+    if(legendBackdrop) legendBackdrop.addEventListener('click', function(e){ if(e.target===legendBackdrop) toggleLegend(); });
+    var helperToggle = document.getElementById('helperToggle'); if(helperToggle) helperToggle.addEventListener('click', toggleHelper);
+    document.querySelectorAll('.answers .btn-answer').forEach(function(btn){
+      btn.addEventListener('click', function(){ handleTextAnswerTap(parseInt(btn.getAttribute('data-idx'),10), btn); });
+    });
+    var retryBtn = document.getElementById('retryBtn'); if(retryBtn) retryBtn.addEventListener('click', function(){ openLevel(state.currentLevelId); });
+    var nextBtn = document.getElementById('nextBtn'); if(nextBtn) nextBtn.addEventListener('click', function(){ openLevel(state.currentLevelId+1); });
+    var mapBtn = document.getElementById('mapBtn'); if(mapBtn) mapBtn.addEventListener('click', goMap);
+  }
+
+  // ---------------- debug hook (inert unless ?debug=1 is present) ----------------
+  if(typeof location!=='undefined' && location.search.indexOf('debug')>-1){
+    window.__ticky_debug = {
+      state: state, progress: progress, LEVELS: LEVELS,
+      openLevel: openLevel, handleRelease: handleRelease, generateRound: generateRound,
+      phraseFor: phraseFor, roomIndexFromAngle: roomIndexFromAngle, roomLabelFromIndex: roomLabelFromIndex,
+      snapToSetCircular: snapToSetCircular, snapToNearestInt: snapToNearestInt, wrapHour: wrapHour,
+      angleFromEvent: angleFromEvent, render: render,
+      handleTextAnswerTap: handleTextAnswerTap, buildTextOptions: buildTextOptions, buildTextRound: buildTextRound
+    };
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
