@@ -188,6 +188,13 @@
   .legend-row{display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:.92rem;}
   .legend-swatch{width:26px; height:8px; border-radius:4px;}
   .modal .btn-primary{width:100%; margin-top:8px;}
+
+  /* coffee support modal */
+  .modal.coffee-modal{text-align:center;}
+  .coffee-modal p{color:var(--ink-soft); font-size:.9rem; margin:0 0 16px;}
+  .coffee-qr-link{display:block; width:min(220px, 70vw); margin:0 auto 16px; border-radius:22px; box-shadow:var(--shadow);}
+  .coffee-qr-svg{display:block; width:100%; height:auto;}
+  .coffee-modal .btn-secondary{width:100%; margin-top:8px;}
 </style>
 </head>
 <body>
@@ -235,6 +242,10 @@
       minuteHandDesc: "The long, teal hand is the minute hand. It moves faster – one whole trip around takes just 60 minutes (1 hour)!",
       exploreConnection: "Watch closely as you drag: the hour hand creeps forward too! It doesn't jump straight from one hour to the next – it slides a little bit every minute.",
       exploreStart: "Got it – let's practice!",
+      coffeeTitle: "Enjoying Ticky?",
+      coffeeMessage: "If this app helped your child learn to tell time, you can buy me a coffee – totally optional, always appreciated!",
+      coffeeCta: "Buy me a coffee",
+      coffeeClose: "Maybe later",
       levels: {
         1: { title:"The Hour Hand Hero",
              prompt: function(h){ return "Bring the hand into the room of " + h + "!"; },
@@ -284,6 +295,10 @@
       minuteHandDesc: "Der lange, t\u00fcrkise Zeiger ist der Minutenzeiger. Er bewegt sich schneller \u2013 eine ganze Runde dauert nur 60 Minuten (1 Stunde)!",
       exploreConnection: "Schau genau hin, w\u00e4hrend du ziehst: Der Stundenzeiger bewegt sich auch ein St\u00fcck mit! Er springt nicht einfach von einer Stunde zur n\u00e4chsten \u2013 er rutscht mit jeder Minute ein kleines bisschen weiter.",
       exploreStart: "Alles klar \u2013 auf geht's!",
+      coffeeTitle: "Gef\u00e4llt dir Ticky?",
+      coffeeMessage: "Wenn diese App deinem Kind beim Uhrenlernen geholfen hat, kannst du mir gerne einen Kaffee spendieren \u2013 ganz freiwillig, aber immer eine Freude!",
+      coffeeCta: "Kaffee spendieren",
+      coffeeClose: "Vielleicht sp\u00e4ter",
       levels: {
         1: { title:"Stunden-Helden",
              prompt: function(h){ return "Bring den Zeiger ins Zimmer der " + h + "!"; },
@@ -339,6 +354,14 @@
   // fine minute ticks and the 5-minute scaffold hint, reused as-is for the explore screen.
   var EXPLORE_LEVEL = { id:3, mode:'minute', scaffold:true };
 
+  // ---------------- support link ----------------
+  var COFFEE_URL = 'https://buymeacoffee.com/tellkoroke';
+  // Hand-rolled QR (error correction M) for COFFEE_URL, styled to match the app's
+  // rounded pastel look. Data modules share one <path> for size; finder eyes and the
+  // center coffee badge stay individual rects for the rounded-corner look. Verified to
+  // decode correctly (jsQR) both at full size and shrunk to ~150px.
+  var COFFEE_QR_SVG = '<svg viewBox="0 0 350 350" class="coffee-qr-svg" role="img" aria-label="QR code to Buy Me a Coffee page"><rect width="350" height="350" rx="18" fill="var(--surface)"/><rect x="30" y="30" width="70" height="70" rx="14" fill="var(--ink)"/><rect x="40" y="40" width="50" height="50" rx="10" fill="var(--surface)"/><rect x="50" y="50" width="30" height="30" rx="7" fill="var(--ink)"/><rect x="250" y="30" width="70" height="70" rx="14" fill="var(--ink)"/><rect x="260" y="40" width="50" height="50" rx="10" fill="var(--surface)"/><rect x="270" y="50" width="30" height="30" rx="7" fill="var(--ink)"/><rect x="30" y="250" width="70" height="70" rx="14" fill="var(--ink)"/><rect x="40" y="260" width="50" height="50" rx="10" fill="var(--surface)"/><rect x="50" y="270" width="30" height="30" rx="7" fill="var(--ink)"/><path d="M120 30h10v10h-10zM140 30h10v10h-10zM170 30h10v10h-10zM200 30h10v10h-10zM210 30h10v10h-10zM220 30h10v10h-10zM130 40h10v10h-10zM190 40h10v10h-10zM210 40h10v10h-10zM230 40h10v10h-10zM130 50h10v10h-10zM140 50h10v10h-10zM170 50h10v10h-10zM180 50h10v10h-10zM200 50h10v10h-10zM220 50h10v10h-10zM120 60h10v10h-10zM130 60h10v10h-10zM150 60h10v10h-10zM160 60h10v10h-10zM210 60h10v10h-10zM220 60h10v10h-10zM120 70h10v10h-10zM150 70h10v10h-10zM200 70h10v10h-10zM210 70h10v10h-10zM110 80h10v10h-10zM120 80h10v10h-10zM130 80h10v10h-10zM140 80h10v10h-10zM150 80h10v10h-10zM180 80h10v10h-10zM190 80h10v10h-10zM210 80h10v10h-10zM220 80h10v10h-10zM230 80h10v10h-10zM110 90h10v10h-10zM130 90h10v10h-10zM150 90h10v10h-10zM170 90h10v10h-10zM190 90h10v10h-10zM210 90h10v10h-10zM230 90h10v10h-10zM120 100h10v10h-10zM130 100h10v10h-10zM160 100h10v10h-10zM180 100h10v10h-10zM200 100h10v10h-10zM210 100h10v10h-10zM220 100h10v10h-10zM230 100h10v10h-10zM30 110h10v10h-10zM60 110h10v10h-10zM80 110h10v10h-10zM90 110h10v10h-10zM110 110h10v10h-10zM130 110h10v10h-10zM150 110h10v10h-10zM170 110h10v10h-10zM190 110h10v10h-10zM210 110h10v10h-10zM220 110h10v10h-10zM240 110h10v10h-10zM260 110h10v10h-10zM30 120h10v10h-10zM40 120h10v10h-10zM50 120h10v10h-10zM60 120h10v10h-10zM80 120h10v10h-10zM160 120h10v10h-10zM190 120h10v10h-10zM240 120h10v10h-10zM250 120h10v10h-10zM280 120h10v10h-10zM310 120h10v10h-10zM30 130h10v10h-10zM70 130h10v10h-10zM90 130h10v10h-10zM100 130h10v10h-10zM110 130h10v10h-10zM130 130h10v10h-10zM140 130h10v10h-10zM160 130h10v10h-10zM170 130h10v10h-10zM190 130h10v10h-10zM200 130h10v10h-10zM220 130h10v10h-10zM240 130h10v10h-10zM260 130h10v10h-10zM270 130h10v10h-10zM280 130h10v10h-10zM290 130h10v10h-10zM300 130h10v10h-10zM60 140h10v10h-10zM70 140h10v10h-10zM80 140h10v10h-10zM100 140h10v10h-10zM130 140h10v10h-10zM150 140h10v10h-10zM160 140h10v10h-10zM210 140h10v10h-10zM220 140h10v10h-10zM260 140h10v10h-10zM270 140h10v10h-10zM290 140h10v10h-10zM300 140h10v10h-10zM30 150h10v10h-10zM40 150h10v10h-10zM60 150h10v10h-10zM70 150h10v10h-10zM80 150h10v10h-10zM90 150h10v10h-10zM100 150h10v10h-10zM110 150h10v10h-10zM120 150h10v10h-10zM200 150h10v10h-10zM230 150h10v10h-10zM240 150h10v10h-10zM250 150h10v10h-10zM280 150h10v10h-10zM300 150h10v10h-10zM310 150h10v10h-10zM30 160h10v10h-10zM50 160h10v10h-10zM60 160h10v10h-10zM80 160h10v10h-10zM100 160h10v10h-10zM110 160h10v10h-10zM130 160h10v10h-10zM200 160h10v10h-10zM210 160h10v10h-10zM220 160h10v10h-10zM230 160h10v10h-10zM240 160h10v10h-10zM30 170h10v10h-10zM40 170h10v10h-10zM60 170h10v10h-10zM70 170h10v10h-10zM90 170h10v10h-10zM110 170h10v10h-10zM140 170h10v10h-10zM200 170h10v10h-10zM230 170h10v10h-10zM250 170h10v10h-10zM270 170h10v10h-10zM280 170h10v10h-10zM290 170h10v10h-10zM300 170h10v10h-10zM310 170h10v10h-10zM40 180h10v10h-10zM50 180h10v10h-10zM60 180h10v10h-10zM70 180h10v10h-10zM120 180h10v10h-10zM140 180h10v10h-10zM200 180h10v10h-10zM220 180h10v10h-10zM230 180h10v10h-10zM260 180h10v10h-10zM270 180h10v10h-10zM280 180h10v10h-10zM300 180h10v10h-10zM30 190h10v10h-10zM40 190h10v10h-10zM80 190h10v10h-10zM90 190h10v10h-10zM100 190h10v10h-10zM110 190h10v10h-10zM140 190h10v10h-10zM200 190h10v10h-10zM220 190h10v10h-10zM230 190h10v10h-10zM240 190h10v10h-10zM260 190h10v10h-10zM300 190h10v10h-10zM40 200h10v10h-10zM50 200h10v10h-10zM70 200h10v10h-10zM80 200h10v10h-10zM110 200h10v10h-10zM120 200h10v10h-10zM150 200h10v10h-10zM160 200h10v10h-10zM170 200h10v10h-10zM190 200h10v10h-10zM240 200h10v10h-10zM250 200h10v10h-10zM260 200h10v10h-10zM280 200h10v10h-10zM310 200h10v10h-10zM30 210h10v10h-10zM50 210h10v10h-10zM70 210h10v10h-10zM90 210h10v10h-10zM110 210h10v10h-10zM120 210h10v10h-10zM170 210h10v10h-10zM190 210h10v10h-10zM230 210h10v10h-10zM250 210h10v10h-10zM260 210h10v10h-10zM270 210h10v10h-10zM300 210h10v10h-10zM310 210h10v10h-10zM50 220h10v10h-10zM100 220h10v10h-10zM110 220h10v10h-10zM140 220h10v10h-10zM170 220h10v10h-10zM190 220h10v10h-10zM200 220h10v10h-10zM210 220h10v10h-10zM220 220h10v10h-10zM230 220h10v10h-10zM300 220h10v10h-10zM310 220h10v10h-10zM30 230h10v10h-10zM50 230h10v10h-10zM60 230h10v10h-10zM80 230h10v10h-10zM90 230h10v10h-10zM100 230h10v10h-10zM140 230h10v10h-10zM230 230h10v10h-10zM240 230h10v10h-10zM250 230h10v10h-10zM260 230h10v10h-10zM270 230h10v10h-10zM290 230h10v10h-10zM110 240h10v10h-10zM150 240h10v10h-10zM170 240h10v10h-10zM190 240h10v10h-10zM220 240h10v10h-10zM230 240h10v10h-10zM270 240h10v10h-10zM290 240h10v10h-10zM300 240h10v10h-10zM310 240h10v10h-10zM130 250h10v10h-10zM190 250h10v10h-10zM230 250h10v10h-10zM250 250h10v10h-10zM270 250h10v10h-10zM300 250h10v10h-10zM110 260h10v10h-10zM120 260h10v10h-10zM130 260h10v10h-10zM170 260h10v10h-10zM190 260h10v10h-10zM230 260h10v10h-10zM270 260h10v10h-10zM280 260h10v10h-10zM290 260h10v10h-10zM310 260h10v10h-10zM130 270h10v10h-10zM150 270h10v10h-10zM180 270h10v10h-10zM190 270h10v10h-10zM200 270h10v10h-10zM230 270h10v10h-10zM240 270h10v10h-10zM250 270h10v10h-10zM260 270h10v10h-10zM270 270h10v10h-10zM310 270h10v10h-10zM110 280h10v10h-10zM140 280h10v10h-10zM150 280h10v10h-10zM160 280h10v10h-10zM230 280h10v10h-10zM250 280h10v10h-10zM270 280h10v10h-10zM280 280h10v10h-10zM290 280h10v10h-10zM300 280h10v10h-10zM130 290h10v10h-10zM150 290h10v10h-10zM170 290h10v10h-10zM200 290h10v10h-10zM220 290h10v10h-10zM270 290h10v10h-10zM280 290h10v10h-10zM290 290h10v10h-10zM310 290h10v10h-10zM130 300h10v10h-10zM140 300h10v10h-10zM170 300h10v10h-10zM200 300h10v10h-10zM220 300h10v10h-10zM230 300h10v10h-10zM250 300h10v10h-10zM260 300h10v10h-10zM270 300h10v10h-10zM300 300h10v10h-10zM110 310h10v10h-10zM120 310h10v10h-10zM160 310h10v10h-10zM180 310h10v10h-10zM200 310h10v10h-10zM230 310h10v10h-10zM240 310h10v10h-10zM250 310h10v10h-10zM270 310h10v10h-10zM280 310h10v10h-10zM300 310h10v10h-10z" fill="var(--ink)"/><rect x="150" y="150" width="50" height="50" rx="11" fill="var(--accent-warm)"/><text x="175" y="180.5" text-anchor="middle" font-size="30">☕</text></svg>';
+
   // ---------------- persistence ----------------
   function loadProgress(){
     try{ var raw = localStorage.getItem(STORAGE_KEY); if(raw) return JSON.parse(raw); }catch(e){}
@@ -362,7 +385,8 @@
     live:null,           // live drag state, see startRoundLive()
     nameDraft:undefined, // in-progress text on the welcome screen
     explore:null,        // live drag state for the explore screen
-    exploreFocus:null    // 'hour' | 'minute' | null, which hand's explanation is showing
+    exploreFocus:null,   // 'hour' | 'minute' | null, which hand's explanation is showing
+    showCoffee:false
   };
 
   // ---------------- math helpers ----------------
@@ -886,6 +910,7 @@
 
   function toggleLegend(){ state.showLegend=!state.showLegend; render(); }
   function toggleHelper(){ state.minuteHelperOn=!state.minuteHelperOn; render(); }
+  function toggleCoffee(){ state.showCoffee=!state.showCoffee; render(); }
   function setLang(l){ if(state.lang===l) return; state.lang=l; progress.lang=l; saveProgress(); render(); }
 
   // ---------------- render: map ----------------
@@ -941,11 +966,26 @@
       '</div>';
     return '' +
       '<div class="scene">' +
-        '<div class="topbar"><div></div>'+renderLangSwitch()+'</div>' +
+        '<div class="topbar"><button class="icon-btn" id="coffeeBtn" aria-label="'+t.coffeeTitle+'">☕</button>'+renderLangSwitch()+'</div>' +
         '<div class="map-header"><h1>'+titleText+'</h1><p>'+t.mapSubtitle+'</p>' +
           (progress.name ? '<button class="change-name-link" id="changeNameBtn">'+t.changeName+'</button>' : '') +
         '</div>' +
         '<div class="map-path">'+exploreStop+stops+'</div>' +
+      '</div>' +
+      (state.showCoffee ? renderCoffeeModal() : '');
+  }
+
+  function renderCoffeeModal(){
+    var t = T();
+    return '' +
+      '<div class="modal-backdrop" id="coffeeBackdrop">' +
+        '<div class="modal coffee-modal">' +
+          '<h3>'+t.coffeeTitle+'</h3>' +
+          '<p>'+t.coffeeMessage+'</p>' +
+          '<a class="coffee-qr-link" href="'+COFFEE_URL+'" target="_blank" rel="noopener" aria-label="'+t.coffeeCta+'">'+COFFEE_QR_SVG+'</a>' +
+          '<a class="btn-primary" href="'+COFFEE_URL+'" target="_blank" rel="noopener" style="display:block;text-decoration:none;box-sizing:border-box;">☕ '+t.coffeeCta+'</a>' +
+          '<button class="btn-secondary" id="coffeeClose">'+t.coffeeClose+'</button>' +
+        '</div>' +
       '</div>';
   }
 
@@ -1156,6 +1196,10 @@
     var legendBackdrop = document.getElementById('legendBackdrop');
     if(legendBackdrop) legendBackdrop.addEventListener('click', function(e){ if(e.target===legendBackdrop) toggleLegend(); });
     var helperToggle = document.getElementById('helperToggle'); if(helperToggle) helperToggle.addEventListener('click', toggleHelper);
+    var coffeeBtn = document.getElementById('coffeeBtn'); if(coffeeBtn) coffeeBtn.addEventListener('click', toggleCoffee);
+    var coffeeClose = document.getElementById('coffeeClose'); if(coffeeClose) coffeeClose.addEventListener('click', toggleCoffee);
+    var coffeeBackdrop = document.getElementById('coffeeBackdrop');
+    if(coffeeBackdrop) coffeeBackdrop.addEventListener('click', function(e){ if(e.target===coffeeBackdrop) toggleCoffee(); });
     document.querySelectorAll('.answers .btn-answer').forEach(function(btn){
       btn.addEventListener('click', function(){ handleTextAnswerTap(parseInt(btn.getAttribute('data-idx'),10), btn); });
     });
