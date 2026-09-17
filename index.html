@@ -190,6 +190,9 @@
   .modal .btn-primary{width:100%; margin-top:8px;}
 
   /* coffee support modal */
+  .coffee-footer{display:flex; justify-content:center; margin-top:20px;}
+  .coffee-footer-btn{display:flex; align-items:center; gap:8px; background:var(--surface); box-shadow:var(--shadow); border-radius:20px; padding:10px 20px; font-size:.85rem; font-weight:600; color:var(--ink);}
+  .coffee-footer-btn .icon{font-size:1.15rem;}
   .modal.coffee-modal{text-align:center;}
   .coffee-modal p{color:var(--ink-soft); font-size:.9rem; margin:0 0 16px;}
   .coffee-qr-link{display:block; width:min(220px, 70vw); margin:0 auto 16px; border-radius:22px; box-shadow:var(--shadow);}
@@ -966,11 +969,12 @@
       '</div>';
     return '' +
       '<div class="scene">' +
-        '<div class="topbar"><button class="icon-btn" id="coffeeBtn" aria-label="'+t.coffeeTitle+'">☕</button>'+renderLangSwitch()+'</div>' +
+        '<div class="topbar"><div></div>'+renderLangSwitch()+'</div>' +
         '<div class="map-header"><h1>'+titleText+'</h1><p>'+t.mapSubtitle+'</p>' +
           (progress.name ? '<button class="change-name-link" id="changeNameBtn">'+t.changeName+'</button>' : '') +
         '</div>' +
         '<div class="map-path">'+exploreStop+stops+'</div>' +
+        '<div class="coffee-footer"><button class="coffee-footer-btn" id="coffeeBtn"><span class="icon">☕</span><span>'+t.coffeeCta+'</span></button></div>' +
       '</div>' +
       (state.showCoffee ? renderCoffeeModal() : '');
   }
