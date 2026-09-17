@@ -129,6 +129,22 @@
   .helper-toggle{ align-self:center; margin:0 0 12px; background:var(--surface); border-radius:20px; box-shadow:var(--shadow); padding:7px 14px; font-size:.85rem; color:var(--ink); display:flex; gap:6px; align-items:center;}
   .helper-toggle.on{background:var(--accent-warm);}
 
+  /* explore screen (how clocks work) */
+  .explore-stop{box-shadow:0 0 0 3px var(--accent-warm), var(--shadow);}
+  .hand-chip-row{display:flex; gap:10px; justify-content:center; margin:2px 0 4px;}
+  .hand-chip{background:var(--surface); box-shadow:var(--shadow); border-radius:20px; padding:8px 16px; font-size:.85rem; font-weight:600; color:var(--ink); border:2px solid transparent;}
+  .hand-chip.hour{border-color:var(--accent-hour);}
+  .hand-chip.hour.active{background:var(--accent-hour); color:#fff;}
+  .hand-chip.minute{border-color:var(--accent-minute);}
+  .hand-chip.minute.active{background:var(--accent-minute); color:#fff;}
+  .explore-digital{text-align:center; font-family:var(--font-display); font-size:1.7rem; font-weight:700; color:var(--ink); margin:6px 0 2px;}
+  .explore-hint{text-align:center; color:var(--ink-soft); font-size:.85rem; margin-bottom:8px;}
+  .explore-connection{font-weight:500; font-size:.92rem;}
+  .clock-wrap.focus-hour #hourHand{filter:drop-shadow(0 0 7px var(--accent-hour));}
+  .clock-wrap.focus-hour .hand-knob.hour{filter:drop-shadow(0 0 7px var(--accent-hour));}
+  .clock-wrap.focus-minute #minuteHand{filter:drop-shadow(0 0 7px var(--accent-minute));}
+  .clock-wrap.focus-minute .hand-knob.minute{filter:drop-shadow(0 0 7px var(--accent-minute));}
+
   /* text-only rounds (Minute Math) */
   .minute-math-badge{ align-self:center; background:var(--accent-warm); color:#2B2A33; font-size:.78rem; font-weight:700; border-radius:14px; padding:4px 14px; margin:0 auto 8px; }
   .bridge-wrap{margin:6px auto 4px; max-width:340px; width:100%;}
@@ -210,6 +226,15 @@
       scaffoldToggle: "Training wheels",
       minUnit: "min",
       minuteMathLabel: "Minute Math",
+      exploreTitle: "How Clocks Work",
+      exploreIntro: "A clock has two hands that work together to tell you the time. Tap a hand below to learn about it, or drag the long hand around!",
+      exploreDragHint: "Drag the long minute hand around the clock!",
+      hourHandLabel: "Hour hand",
+      hourHandDesc: "The short, red hand is the hour hand. It moves slowly – one whole trip around takes 12 hours!",
+      minuteHandLabel: "Minute hand",
+      minuteHandDesc: "The long, teal hand is the minute hand. It moves faster – one whole trip around takes just 60 minutes (1 hour)!",
+      exploreConnection: "Watch closely as you drag: the hour hand creeps forward too! It doesn't jump straight from one hour to the next – it slides a little bit every minute.",
+      exploreStart: "Got it – let's practice!",
       levels: {
         1: { title:"The Hour Hand Hero",
              prompt: function(h){ return "Bring the hand into the room of " + h + "!"; },
@@ -250,6 +275,15 @@
       scaffoldToggle: "St\u00fctzr\u00e4der",
       minUnit: "Min.",
       minuteMathLabel: "Minuten-Mathe",
+      exploreTitle: "Wie die Uhr funktioniert",
+      exploreIntro: "Eine Uhr hat zwei Zeiger, die dir gemeinsam die Zeit zeigen. Tipp unten auf einen Zeiger, um mehr zu erfahren, oder zieh am langen Zeiger!",
+      exploreDragHint: "Zieh den langen Minutenzeiger rund um die Uhr!",
+      hourHandLabel: "Stundenzeiger",
+      hourHandDesc: "Der kurze, rote Zeiger ist der Stundenzeiger. Er bewegt sich langsam \u2013 eine ganze Runde dauert 12 Stunden!",
+      minuteHandLabel: "Minutenzeiger",
+      minuteHandDesc: "Der lange, t\u00fcrkise Zeiger ist der Minutenzeiger. Er bewegt sich schneller \u2013 eine ganze Runde dauert nur 60 Minuten (1 Stunde)!",
+      exploreConnection: "Schau genau hin, w\u00e4hrend du ziehst: Der Stundenzeiger bewegt sich auch ein St\u00fcck mit! Er springt nicht einfach von einer Stunde zur n\u00e4chsten \u2013 er rutscht mit jeder Minute ein kleines bisschen weiter.",
+      exploreStart: "Alles klar \u2013 auf geht's!",
       levels: {
         1: { title:"Stunden-Helden",
              prompt: function(h){ return "Bring den Zeiger ins Zimmer der " + h + "!"; },
@@ -300,6 +334,10 @@
   ];
   function levelById(id){ for(var i=0;i<LEVELS.length;i++){ if(LEVELS[i].id===id) return LEVELS[i]; } return null; }
   var LEVEL_ICONS = {1:'\uD83E\uDDB8',2:'\uD83E\uDD67',3:'\uD83D\uDD22',4:'\u2194\uFE0F',5:'\u23F1\uFE0F'};
+  var EXPLORE_ICON = '\uD83D\uDD70\uFE0F';
+  // A minimal "level" shape that gives buildClockSVG/updateLiveClock a plain clock with
+  // fine minute ticks and the 5-minute scaffold hint, reused as-is for the explore screen.
+  var EXPLORE_LEVEL = { id:3, mode:'minute', scaffold:true };
 
   // ---------------- persistence ----------------
   function loadProgress(){
@@ -322,7 +360,9 @@
     round:null,          // current round target data
     roundStartTime:null,
     live:null,           // live drag state, see startRoundLive()
-    nameDraft:undefined  // in-progress text on the welcome screen
+    nameDraft:undefined, // in-progress text on the welcome screen
+    explore:null,        // live drag state for the explore screen
+    exploreFocus:null    // 'hour' | 'minute' | null, which hand's explanation is showing
   };
 
   // ---------------- math helpers ----------------
@@ -665,6 +705,53 @@
     handle.addEventListener('pointercancel', onUp);
   }
 
+  // Free-dragging minute hand for the explore screen: no snapping, no scoring,
+  // just a live hour-hand-follows-the-minutes readout so the connection is visible.
+  var exploreDragCtl = { active:false, prevAngle:null };
+
+  function attachExploreDrag(){
+    var svg = document.getElementById('clockSvg');
+    if(!svg) return;
+    var handle = document.getElementById('minuteHandle');
+    if(!handle) return;
+
+    function onDown(e){
+      exploreDragCtl.active = true;
+      try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+      exploreDragCtl.prevAngle = angleFromEvent(svg, e.clientX, e.clientY);
+      ensureAudio();
+      if(e.preventDefault) e.preventDefault();
+    }
+    function onMove(e){
+      if(!exploreDragCtl.active) return;
+      var angle = angleFromEvent(svg, e.clientX, e.clientY);
+      var diff = angle - exploreDragCtl.prevAngle;
+      var wrapDelta = 0;
+      if(diff < -180) wrapDelta = 1;
+      else if(diff > 180) wrapDelta = -1;
+      exploreDragCtl.prevAngle = angle;
+
+      if(wrapDelta!==0){ state.explore.hourWrapCount += wrapDelta; playPop(); }
+      var minuteContinuous = angle/6;
+      var effectiveHour = wrapHour(state.explore.baseHour + state.explore.hourWrapCount);
+      state.explore.minuteAngleDeg = angle;
+      state.explore.currentMinute = minuteContinuous;
+      state.explore.currentHour = effectiveHour;
+      updateLiveClock(EXPLORE_LEVEL, effectiveHour, minuteContinuous, 'minute');
+      var digitalEl = document.getElementById('exploreDigital');
+      if(digitalEl){
+        var mm = Math.round(minuteContinuous)%60; if(mm<0) mm+=60;
+        digitalEl.textContent = fmt(effectiveHour, mm);
+      }
+      if(e.preventDefault) e.preventDefault();
+    }
+    function onUp(){ exploreDragCtl.active = false; }
+    handle.addEventListener('pointerdown', onDown);
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
+  }
+
   function startRoundLive(level, round){
     if(level.id===1){
       state.live = { hourAngleDeg:0, roomIndex:0 };
@@ -746,6 +833,13 @@
     state.firstTryCorrectCount = 0;
     state.screen = 'quiz';
     newRound(null);
+    render();
+  }
+
+  function openExplore(){
+    state.screen = 'explore';
+    state.exploreFocus = null;
+    state.explore = { baseHour:10, hourWrapCount:0, currentMinute:10, currentHour:10, minuteAngleDeg:60 };
     render();
   }
 
@@ -837,13 +931,54 @@
           '</button>' +
         '</div>';
     }).join('');
+    var exploreStop = '' +
+      '<div class="level-stop explore-stop" style="background:linear-gradient(160deg,#FFEFD6,#FFFBF0)">' +
+        '<button class="level-stop-btn" id="exploreStopBtn" aria-label="'+t.exploreTitle+'">' +
+          '<div class="badge">'+EXPLORE_ICON+'</div>' +
+          '<h3>'+t.exploreTitle+'</h3>' +
+          '<div class="stars">✨</div>' +
+        '</button>' +
+      '</div>';
     return '' +
       '<div class="scene">' +
         '<div class="topbar"><div></div>'+renderLangSwitch()+'</div>' +
         '<div class="map-header"><h1>'+titleText+'</h1><p>'+t.mapSubtitle+'</p>' +
           (progress.name ? '<button class="change-name-link" id="changeNameBtn">'+t.changeName+'</button>' : '') +
         '</div>' +
-        '<div class="map-path">'+stops+'</div>' +
+        '<div class="map-path">'+exploreStop+stops+'</div>' +
+      '</div>';
+  }
+
+  function renderExplore(){
+    var t = T();
+    var ex = state.explore;
+    var displayMinute = Math.round(ex.currentMinute) % 60; if(displayMinute<0) displayMinute+=60;
+    var displayHour = wrapHour(ex.baseHour + ex.hourWrapCount);
+    var hourActive = state.exploreFocus==='hour';
+    var minuteActive = state.exploreFocus==='minute';
+    var descText = hourActive ? t.hourHandDesc : (minuteActive ? t.minuteHandDesc : t.exploreIntro);
+    var topbar = '' +
+      '<div class="topbar">' +
+        '<button class="icon-btn" id="homeBtn" aria-label="'+t.home+'">🏠</button>' +
+        '<div class="title-pill"><span class="emoji">'+EXPLORE_ICON+'</span><h1>'+t.exploreTitle+'</h1></div>' +
+        '<div style="width:44px;flex-shrink:0;"></div>' +
+      '</div>' +
+      '<div class="topbar" style="margin-top:-2px;justify-content:center;">'+renderLangSwitch()+'</div>';
+    var chips = '' +
+      '<div class="hand-chip-row">' +
+        '<button class="hand-chip hour'+(hourActive?' active':'')+'" id="hourChip">'+t.hourHandLabel+'</button>' +
+        '<button class="hand-chip minute'+(minuteActive?' active':'')+'" id="minuteChip">'+t.minuteHandLabel+'</button>' +
+      '</div>';
+    return '' +
+      '<div class="scene">' +
+        topbar +
+        '<div class="prompt-card" id="exploreDesc">'+descText+'</div>' +
+        chips +
+        '<div class="clock-wrap'+(hourActive?' focus-hour':'')+(minuteActive?' focus-minute':'')+'" id="exploreClockWrap">'+ buildClockSVG(EXPLORE_LEVEL, displayHour, ex.currentMinute, {}) +'</div>' +
+        '<div class="explore-digital" id="exploreDigital">'+fmt(displayHour, displayMinute)+'</div>' +
+        '<div class="explore-hint">👉 '+t.exploreDragHint+'</div>' +
+        '<div class="prompt-card explore-connection">'+t.exploreConnection+'</div>' +
+        '<button class="btn-primary" id="exploreStartBtn" style="align-self:center;margin-top:4px;">'+t.exploreStart+'</button>' +
       '</div>';
   }
 
@@ -976,6 +1111,7 @@
     var html, bg;
     if(state.screen==='welcome'){ html = renderWelcome(); bg = ['#FFE9C7','#FFF6E4']; }
     else if(state.screen==='map'){ html = renderMap(); bg = ['#DDEEF7','#FFF6E4']; }
+    else if(state.screen==='explore'){ html = renderExplore(); bg = ['#FFF1D6','#FFFDF6']; }
     else if(state.screen==='quiz'){
       var level = levelById(state.currentLevelId);
       if(state.roundIndex===0 && !state.levelStartTimeSetFor){ state.levelStartTime = Date.now(); state.levelStartTimeSetFor = state.currentLevelId; }
@@ -986,6 +1122,7 @@
     applySceneBg(bg);
     attachHandlers();
     if(state.screen==='quiz' && state.round && state.round.type!=='text'){ attachDrag(levelById(state.currentLevelId)); }
+    if(state.screen==='explore'){ attachExploreDrag(); }
     if(state.screen==='welcome'){ var nameInput = document.getElementById('nameInput'); if(nameInput) nameInput.focus(); }
     try{ document.title = progress.name ? T().appTitleFor(progress.name) : T().appTitle; }catch(e){}
   }
@@ -1003,9 +1140,13 @@
     var startBtn = document.getElementById('startBtn');
     if(startBtn) startBtn.addEventListener('click', function(){ var ni=document.getElementById('nameInput'); submitName(ni?ni.value:state.nameDraft); });
     var changeNameBtn = document.getElementById('changeNameBtn'); if(changeNameBtn) changeNameBtn.addEventListener('click', function(){ goWelcome(progress.name); });
-    document.querySelectorAll('.level-stop-btn').forEach(function(btn){
+    document.querySelectorAll('.level-stop-btn[data-level]').forEach(function(btn){
       btn.addEventListener('click', function(){ if(!btn.disabled) openLevel(parseInt(btn.getAttribute('data-level'),10)); });
     });
+    var exploreStopBtn = document.getElementById('exploreStopBtn'); if(exploreStopBtn) exploreStopBtn.addEventListener('click', openExplore);
+    var hourChip = document.getElementById('hourChip'); if(hourChip) hourChip.addEventListener('click', function(){ state.exploreFocus = (state.exploreFocus==='hour'?null:'hour'); render(); });
+    var minuteChip = document.getElementById('minuteChip'); if(minuteChip) minuteChip.addEventListener('click', function(){ state.exploreFocus = (state.exploreFocus==='minute'?null:'minute'); render(); });
+    var exploreStartBtn = document.getElementById('exploreStartBtn'); if(exploreStartBtn) exploreStartBtn.addEventListener('click', goMap);
     document.querySelectorAll('.lang-switch button').forEach(function(btn){
       btn.addEventListener('click', function(){ setLang(btn.getAttribute('data-lang')); });
     });
