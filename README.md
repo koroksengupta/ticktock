@@ -292,7 +292,4 @@ Entirely optional, always appreciated, never required to use the app.
 
 ## License
 
-No license file is currently included in this repository, which means
-default copyright applies (all rights reserved) unless the repository owner
-adds one. If you're the owner and want to allow reuse, consider adding a
-`LICENSE` file (e.g. MIT) at the repo root.
+[MIT](LICENSE) — free to use, modify, and share.
